@@ -4,17 +4,13 @@
 		<title>HTML Viewer</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0">
-
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/codemirror.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/addon/search/search.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/addon/search/searchcursor.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/addon/mode/overlay.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/addon/search/match-highlighter.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/htmlmixed/htmlmixed.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/xml/xml.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/javascript/javascript.js"></script> 
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/codemirror.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/codemirror.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/addon/mode/overlay.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/htmlmixed/htmlmixed.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/xml/xml.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/mode/javascript/javascript.min.js"></script>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.11.0/codemirror.min.css">
 		 <style>
 			.CodeMirror {
 				height: auto;
@@ -51,6 +47,18 @@
 			}
 			.tagSelect {
 				cursor: pointer;
+			}
+			#getUrl {
+				font: 200 14px/1.5 Helvetica, Verdana, sans-serif;
+				margin-left: 50px;
+				height: 30px;
+				width: 200px;
+			}
+			#fetchUrl {
+				font: 200 14px/1.5 Helvetica, Verdana, sans-serif;
+				margin-left: 5px;
+				height: 30px;
+				width: 50px;
 			}
 		</style>
 		<script>
@@ -101,16 +109,15 @@
 			})();
 			$(document).ready(function() {
 				if(getQueryVariable('url')) {
-					$('#fetchUrl').remove();
-					$('#getUrl').remove();
-					fetch(getQueryVariable('url'));
+					var _url = getQueryVariable('url');
+					$('#getUrl').val(_url);
+					fetch(_url);
 				}
-				else {
-					$('#fetchUrl').click(function() {
-						var _url = $('#getUrl').val();
-						fetch(_url);
-					});
-				}
+				$('#fetchForm').submit(function(e) {
+					e.preventDefault();
+					var _url = $('#getUrl').val();
+					window.location.href = window.location.pathname + '?url=' + _url;
+				});
 			});
 			function fetch(_url) {
 				$.ajax({
@@ -139,8 +146,6 @@
 						$.each(tagSummary, function(i, el) {
 							$log.find("ul").append('<li class="tagSelect" data-tag-name="' + i.toLowerCase() + '"> ' + i.toLowerCase() + ' : ' + el + ' </li>');
 						});
-						$('#fetchUrl').remove();
-						$('#getUrl').remove();
 						$('li.tagSelect').click(function() {
 							var $this = $(this);
 							$this.parent().find("li").removeClass('cm-highlightSearch');
@@ -167,8 +172,10 @@
 	</head>
 	<body>
 		<div id="error"></div>
-		<input id="getUrl" value="http://google.com">
-		<button id="fetchUrl">fetch</button>
+		<form id="fetchForm">
+			<input id="getUrl" value="http://google.com">
+			<button type="submit" id="fetchUrl">fetch</button>
+		</form>
 		<br>
 		<h1 id="urlTitle"></h1>
 		<div id="log">
