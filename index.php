@@ -23,92 +23,154 @@
 			}
 			.cm-highlightSearch {
 				color: #0ca;
-			    background-color: #FFF147;
+				background-color: #FFF147;
+			}
+			#error {
+				color: red;
+				font-size: 16px;
+			}
+			#log {
+				width: 200px;
+				margin-left: 50px;
+			}
+			h1 {
+				font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+				margin-left: 50px;
+			}
+			ul {
+				list-style-type: none;
+				margin: 0 0 50px 0;
+				padding: 0;
+			}
+			li {
+				font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+				border-bottom: 1px solid #ccc;
+			}
+			li:last-child {
+				border: none;
+			}
+			.tagSelect {
+				cursor: pointer;
 			}
 		</style>
 		<script>
-		var mode = 'text/html';
-		var keyword = 'div';
-		function getRegex() {
-			return _regex = new RegExp('<\\/?' + keyword + '[^>]*?>', "i");
-		}
-		CodeMirror.defineMode("highlightSearch", function (config, parserConfig) {
-			var searchOverlay = {
-               token: function(stream, state) {
-                    if (stream.match(getRegex())) {
-                        return "highlightSearch";
-                    }
-                    while (stream.next() != null && !stream.match(_regex, false)) {}
-                    return null;
-                }
-			};
-			return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), searchOverlay);
-		});
-		var myCodeMirror;
-		$(document).ready(function() {
-			myCodeMirror = CodeMirror.fromTextArea(document.getElementById('codeArea'), {
-				mode: 'highlightSearch',
-				readOnly: true,
-				lineWrapping: true,
-				scrollbarStyle: null,
-				lineNumbers: true,
-				viewportMargin: Infinity
-			});
-			if(getQueryVariable('url')) {
-				fetch(getQueryVariable('url'));
-			}
-			else {
-				$('#fetchUrl').click(function() {
-					var _url = $('#getUrl').val();
-					fetch(_url);
-				});
-			}
-		});
+			var cm = (function() {
+				var editor;
+				var mode = 'text/html';
+				var overlay = null;
 
-		function fetch(_url) {
-			$.ajax({
-			  url: 'ajax/getUrl.php',
-			  data: {url: _url},
-			  success: success
+				function init(element) {
+					editor = CodeMirror.fromTextArea(element, {
+						mode: mode,
+						readOnly: true,
+						lineWrapping: true,
+						scrollbarStyle: null,
+						lineNumbers: true,
+						viewportMargin: Infinity
+					});
+				}
+				function setHighlight(tagName) {
+					editor.operation(function() {
+						if (overlay !== null) {
+							editor.removeOverlay(overlay);
+						}
+						overlay = _makeOverlay(tagName);
+						editor.addOverlay(overlay);
+					});
+				}
+				function _makeOverlay(query) {
+					var _regex = new RegExp('<\\/?' + query + '[^>]*?>', "i");
+					return {
+					   token: function(stream, state) {
+							if (stream.match(_regex)) {
+								return "highlightSearch";
+							}
+							while (stream.next() != null && !stream.match(_regex, false)) {}
+							return null;
+						}
+					};
+				}
+				function loadData(value) {
+					editor.setValue(value);
+				}
+				return {
+					init: init,
+					loadData: loadData,
+					setHighlight: setHighlight
+				};
+			})();
+			$(document).ready(function() {
+				if(getQueryVariable('url')) {
+					$('#fetchUrl').remove();
+					$('#getUrl').remove();
+					fetch(getQueryVariable('url'));
+				}
+				else {
+					$('#fetchUrl').click(function() {
+						var _url = $('#getUrl').val();
+						fetch(_url);
+					});
+				}
 			});
-			function success(data) {
-				myCodeMirror.setValue(data.data);
-				var fakeDom = $.parseHTML(data.data, document, true);
-				var $log = $("#log");
-				var tagSummary = {};
-				$.each(fakeDom, function(i, el) {
-					var _tagName = $(el).prop("tagName");
-					if(_tagName !== undefined) {
-						if (_tagName in tagSummary) {
-							tagSummary[_tagName] = tagSummary[_tagName] + 1;
-						}
-						else {
-							tagSummary[_tagName] = 1;
-						}
+			function fetch(_url) {
+				$.ajax({
+				  url: 'ajax/getUrl.php',
+				  data: {url: _url},
+				  success: success
+				});
+				function success(data) {
+					if(data.status == "1") {
+						cm.init(document.getElementById('codeArea'));
+						cm.loadData(data.data);
+						var fakeDom = $.parseHTML(data.data, document, true);
+						var $log = $("#log");
+						var tagSummary = {};
+						$.each(fakeDom, function(i, el) {
+							var _tagName = $(el).prop("tagName");
+							if(_tagName !== undefined) {
+								if (_tagName in tagSummary) {
+									tagSummary[_tagName] = tagSummary[_tagName] + 1;
+								}
+								else {
+									tagSummary[_tagName] = 1;
+								}
+							}
+						});
+						$.each(tagSummary, function(i, el) {
+							$log.find("ul").append('<li class="tagSelect" data-tag-name="' + i.toLowerCase() + '"> ' + i.toLowerCase() + ' : ' + el + ' </li>');
+						});
+						$('#fetchUrl').remove();
+						$('#getUrl').remove();
+						$('li.tagSelect').click(function() {
+							var $this = $(this);
+							$this.parent().find("li").removeClass('cm-highlightSearch');
+							$this.addClass('cm-highlightSearch');
+							cm.setHighlight($(this).data("tagName"));
+						});
+						$("#urlTitle").html("tag summary for " + _url);
 					}
-				});
-				$.each(tagSummary, function(i, el) {
-					$log.find("ul").append('<li> ' + i.toLowerCase() + ' : ' + el + ' </li>');
-				});
-				$('#fetchUrl').remove();
-				$('#getUrl').remove();
+					else {
+						$('#error').html('Bad url: ' + _url);
+					}
+				}
 			}
-		}
-		function getQueryVariable(variable)	{
-			var query = window.location.search.substring(1);
-			var vars = query.split("&");
-			for (var i=0;i<vars.length;i++) {
-				var pair = vars[i].split("=");
-				if(pair[0] == variable){return pair[1];}
+			function getQueryVariable(variable)	{
+				var query = window.location.search.substring(1);
+				var vars = query.split("&");
+				for (var i=0;i<vars.length;i++) {
+					var pair = vars[i].split("=");
+					if(pair[0] == variable){return pair[1];}
+				}
+				return(false);
 			}
-			return(false);
-		}
 		</script>
 	</head>
 	<body>
+		<div id="error"></div>
 		<input id="getUrl" value="http://google.com">
 		<button id="fetchUrl">fetch</button>
 		<br>
+		<h1 id="urlTitle"></h1>
 		<div id="log">
 			<ul>
 			</ul>
