@@ -132,7 +132,7 @@
 						var fakeDom = $.parseHTML(data.data, document, true);
 						var $log = $("#log");
 						var tagSummary = {};
-						$.each(fakeDom, function(i, el) {
+						$.each($(fakeDom).find('*'), function(i, el) {
 							var _tagName = $(el).prop("tagName");
 							if(_tagName !== undefined) {
 								if (_tagName in tagSummary) {
