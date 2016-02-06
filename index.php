@@ -129,19 +129,40 @@
 					if(data.status == "1") {
 						cm.init(document.getElementById('codeArea'));
 						cm.loadData(data.data);
-						var fakeDom = $.parseHTML(data.data, document, true);
-						var $log = $("#log");
 						var tagSummary = {};
-						$.each($(fakeDom).find('*'), function(i, el) {
-							var _tagName = $(el).prop("tagName");
-							if(_tagName !== undefined) {
-								if (_tagName in tagSummary) {
-									tagSummary[_tagName] = tagSummary[_tagName] + 1;
-								}
-								else {
-									tagSummary[_tagName] = 1;
+						var metaTags = ['title', 'style', 'meta', 'link', 'script', 'base'];
+						var $log = $("#log");
+						function countTag(_tagName) {
+							if (_tagName in tagSummary) {
+								tagSummary[_tagName] = tagSummary[_tagName] + 1;
+							}
+							else {
+								tagSummary[_tagName] = 1;
+							}
+						}
+						var fakeDom = data.data;
+						// pull top level tags as strings
+						var _result = fakeDom.match(/<(head|html|body|\!doctype)[^>]*?>/ig);
+						$.each(_result, function(i, el) {
+							match = el.match(/<(\!?[\w]*).*?/i);
+							if (match != null)
+								countTag(match[1].toLowerCase());
+						});
+						// count meta tags before converting to jQuery collection
+						fakeDom = $.parseHTML(fakeDom, document, true);
+						$.each(fakeDom, function(i, el) {
+							var _name = el.tagName;
+							if (_name !== undefined) {
+								_name = _name.toLowerCase();
+								if (metaTags.indexOf(_name) !== -1){
+									countTag(_name);
 								}
 							}
+						});
+						// convert to jQuery so we can use find on the body
+						var $allDom = $(fakeDom).find('*');
+						$.each($allDom, function(i, el) {
+							countTag($(el).prop("tagName"));
 						});
 						$.each(tagSummary, function(i, el) {
 							$log.find("ul").append('<li class="tagSelect" data-tag-name="' + i.toLowerCase() + '"> ' + i.toLowerCase() + ' : ' + el + ' </li>');
