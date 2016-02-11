@@ -87,7 +87,7 @@
 					});
 				}
 				function _makeOverlay(query) {
-					var _regex = new RegExp('<\\/?' + query + '[^>]*?>', "i");
+					var _regex = new RegExp('<\\/?' + query + '\\b[^>]*?>', "i");
 					return {
 					   token: function(stream, state) {
 							if (stream.match(_regex)) {
